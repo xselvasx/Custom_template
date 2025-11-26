@@ -1,0 +1,57 @@
+# Docker Compose Example for inductiveautomation/ignition
+# Compose Spec: https://github.com/compose-spec/compose-spec/blob/master/spec.md
+---
+services:
+  # Ignition Gateway
+  gateway:
+    image: inductiveautomation/ignition:8.3.1
+
+    volumes:
+      #- /DATA/AppData/fabio/ignition01/data:/usr/local/bin/ignition/data
+      - gw-data:/usr/local/bin/ignition/data
+    # env_file: ignition.env  # optionally specify variables in a file, or using `environment:` below
+    environment:
+      - ACCEPT_IGNITION_EULA=Y
+      - GATEWAY_ADMIN_USERNAME=admin
+#      - GATEWAY_ADMIN_PASSWORD_FILE=/run/secrets/gateway-admin-password
+      - GATEWAY_ADMIN_PASSWORD=password
+      - IGNITION_EDITION=standard
+      - GATEWAY_HTTP_PORT=80
+      - GATEWAY_HTTPS_PORT=443
+      - TZ=Europe/Rome  # see https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List
+#    ports:
+#      - 445:445
+#    secrets:
+#      - gateway-admin-password
+    command: >
+      -n fabio-Ignition01
+      -m 1024
+      --
+      wrapper.java.initmemory=1024
+      wrapper.java.maxmemory=8192
+      -Dignition.allowunsignedmodules=true
+    networks:
+      macvlan60:
+        # ipv4_address: 172.17.60.101  # IP fisso
+
+#secrets:
+#  gateway-admin-password:
+#    file: /DATA/AppData/{{name}}/secrets/GATEWAY_ADMIN_PASSWORD
+
+  samba:
+    image: dockurr/samba
+    environment:
+      NAME: "Data"
+      USER: ${SMB_User}
+      PASS: ${SMB_Password}
+    volumes:
+      - gw-data:/storage
+    restart: always
+    network_mode: service:gateway
+
+volumes:
+    gw-data:
+
+networks:
+  macvlan60:
+    external: true
